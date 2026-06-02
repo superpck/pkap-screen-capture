@@ -24,7 +24,7 @@ info()  { echo -e "  $*"; }
 
 APP_NAME="pkap"
 TARGET_DIR="src-tauri/target"
-DIST_DIR="dist"
+DIST_DIR="app"
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -158,27 +158,49 @@ build_linux() {
     ok "Done — Linux build"
 }
 
-# ── Windows build (via Docker + Wine / cross) ──────────────────────────────────
+# ── Windows build (via cargo-xwin) ────────────────────────────────────────────
 
 build_windows() {
-    step "Windows x86_64  (via cross + Docker)"
+    step "Windows x86_64  (cross-compile from macOS)"
 
-    if ! command -v docker &>/dev/null; then
-        err "Docker not found. Install Docker Desktop and try again."
-    fi
-    if ! command -v cross &>/dev/null; then
-        warn "Installing 'cross' (Rust cross-compile helper)…"
-        cargo install cross --git https://github.com/cross-rs/cross
+    # Check if cargo-xwin is installed
+    if ! command -v cargo-xwin &>/dev/null; then
+        step "Installing cargo-xwin for Windows cross-compilation…"
+        cargo install cargo-xwin
+        ok "cargo-xwin installed"
     fi
 
-    warn "Windows .msi requires building ON a Windows machine or via GitHub Actions."
-    warn "cross can compile the Rust binary but the Tauri bundler (WiX) is Windows-only."
+    # Add Windows target if not already installed
+    ensure_target x86_64-pc-windows-msvc
+
+    warn "Note: This builds pkap.exe only (no .msi installer)."
+    warn "For .msi packages, build on Windows or use GitHub Actions."
     info ""
-    info "Recommended: use the GitHub Actions workflow at:"
-    info "  https://tauri.app/distribute/github-actions/"
-    info ""
-    info "Quick GitHub Actions snippet:"
-    info "  .github/workflows/release.yml → jobs: [build-mac, build-linux, build-windows]"
+
+    step "Building Windows binary with cargo-xwin…"
+    
+    # Build using cargo-xwin (builds the Rust binary directly)
+    cd src-tauri
+    cargo xwin build --release --target x86_64-pc-windows-msvc
+    cd ..
+    
+    # Copy the .exe to dist/
+    ensure_dist_dir
+    
+    local exe_path="$TARGET_DIR/x86_64-pc-windows-msvc/release/pkap.exe"
+    if [ -f "$exe_path" ]; then
+        cp "$exe_path" "$DIST_DIR/pkap.exe"
+        local size=$(du -sh "$exe_path" 2>/dev/null | cut -f1)
+        echo ""
+        echo -e "${B}Output file:${NC}"
+        echo -e "  ${GREEN}$exe_path${NC}  ($size)"
+        echo ""
+        ok "Copied to: dist/pkap.exe"
+    else
+        err "Build succeeded but pkap.exe not found at: $exe_path"
+    fi
+
+    ok "Done — Windows build"
 }
 
 # ── Summary header ─────────────────────────────────────────────────────────────

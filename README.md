@@ -1,4 +1,4 @@
-# pkap — Screen Recorder
+# pkap — PK Screen Recorder
 
 > **Developer documentation.** For users: just run `./build.sh` and open the `.dmg`.
 
@@ -31,16 +31,34 @@ Records to MP4, WebM, and GIF. Runs natively on macOS Apple Silicon, Intel, Wind
 # 1. Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
-# 2. Tauri CLI
-cargo install tauri-cli
+# 2. ffmpeg  (runtime dependency — required for encoding)
+brew install ffmpeg               # macOS
+# sudo apt install ffmpeg         # Linux
+# scoop install ffmpeg            # Windows
+```
 
-# 3. ffmpeg  (runtime dependency — users need this too unless you bundle it)
-brew install ffmpeg
+---
 
-# 4. Clone
+## Quick Start
+
+### After `git clone`
+
+```sh
 git clone https://github.com/superpck/pkap-screen-capture
 cd pkap-screen-capture
+
+# 1. Make sure Rust is installed (skip if already done)
+rustc --version || curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# 2. Run in development mode (compiles automatically)
+cargo tauri dev
+
+# OR build a release binary
+./build.sh
+# Output: dist/ folder with .app and .dmg files
 ```
+
+**That's it.** No `npm install`, no bundler setup. The frontend is plain HTML/CSS/JS served directly by Tauri.
 
 ---
 
@@ -65,7 +83,11 @@ The file watcher recompiles Rust on save and hot-reloads the frontend automatica
 ./build.sh --all          # all platforms
 ```
 
-Output: `src-tauri/target/<triple>/release/bundle/`
+**Output locations:**
+- `dist/` — final app bundles (.app, .dmg, .deb, .AppImage, .msi)
+- `src-tauri/target/<triple>/release/bundle/` — original build artifacts
+
+The build script automatically copies all bundles to `dist/` for easy distribution.
 
 ---
 
