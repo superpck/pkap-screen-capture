@@ -158,49 +158,31 @@ build_linux() {
     ok "Done — Linux build"
 }
 
-# ── Windows build (via cargo-xwin) ────────────────────────────────────────────
+# ── Windows build ──────────────────────────────────────────────────────────────
 
 build_windows() {
-    step "Windows x86_64  (cross-compile from macOS)"
+    step "Windows x86_64"
 
-    # Check if cargo-xwin is installed
-    if ! command -v cargo-xwin &>/dev/null; then
-        step "Installing cargo-xwin for Windows cross-compilation…"
-        cargo install cargo-xwin
-        ok "cargo-xwin installed"
-    fi
-
-    # Add Windows target if not already installed
-    ensure_target x86_64-pc-windows-msvc
-
-    warn "Note: This builds pkap.exe only (no .msi installer)."
-    warn "For .msi packages, build on Windows or use GitHub Actions."
+    warn "Cross-compiling to Windows from macOS is not currently supported."
+    warn "The 'scap' screen capture library has dependency conflicts when cross-compiling."
     info ""
-
-    step "Building Windows binary with cargo-xwin…"
+    info "To build Windows binaries, you have two options:"
+    info ""
+    info "1. Build on a Windows machine:"
+    info "   ${B}cargo tauri build --target x86_64-pc-windows-msvc${NC}"
+    info ""
+    info "2. Use GitHub Actions (recommended):"
+    info "   • Create .github/workflows/release.yml"
+    info "   • Use the official Tauri workflow template:"
+    info "   • https://tauri.app/distribute/github-actions/"
+    info ""
+    info "This will create:"
+    info "   • pkap.exe           (standalone executable)"
+    info "   • pkap_0.1.0_x64.msi (Windows installer)"
+    info ""
     
-    # Build using cargo-xwin (builds the Rust binary directly)
-    cd src-tauri
-    cargo xwin build --release --target x86_64-pc-windows-msvc
-    cd ..
-    
-    # Copy the .exe to dist/
-    ensure_dist_dir
-    
-    local exe_path="$TARGET_DIR/x86_64-pc-windows-msvc/release/pkap.exe"
-    if [ -f "$exe_path" ]; then
-        cp "$exe_path" "$DIST_DIR/pkap.exe"
-        local size=$(du -sh "$exe_path" 2>/dev/null | cut -f1)
-        echo ""
-        echo -e "${B}Output file:${NC}"
-        echo -e "  ${GREEN}$exe_path${NC}  ($size)"
-        echo ""
-        ok "Copied to: dist/pkap.exe"
-    else
-        err "Build succeeded but pkap.exe not found at: $exe_path"
-    fi
-
-    ok "Done — Windows build"
+    echo -e "${YELLOW}For a complete GitHub Actions workflow, see:${NC}"
+    echo -e "${BLUE}https://github.com/tauri-apps/tauri-action${NC}"
 }
 
 # ── Summary header ─────────────────────────────────────────────────────────────
