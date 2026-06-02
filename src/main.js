@@ -9,6 +9,41 @@ function shortenPath(fullPath) {
   return `…${sep}${parts.slice(-2).join(sep)}`;
 }
 
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function startWithCountdown() {
+  const settings = await invoke("get_settings");
+  const btn = document.getElementById("record-btn");
+  const errLabel = document.getElementById("error-label");
+
+  if (settings.countdown) {
+    btn.disabled = true;
+    for (let i = 3; i > 0; i--) {
+      btn.textContent = String(i);
+      await sleep(1000);
+    }
+    btn.disabled = false;
+  }
+
+  try {
+    await invoke("start_recording");
+  } catch (err) {
+    btn.textContent = "Start Recording";
+    btn.disabled = false;
+    errLabel.textContent = err;
+    setTimeout(() => { errLabel.textContent = ""; }, 6000);
+  }
+}
+
+async function refreshProfiles() {
+  const profiles = await invoke("get_profiles");
+  const sel = document.getElementById("profile-select");
+  const current = sel.value;
+  sel.innerHTML = `<option value="">Profiles…</option>` +
+    profiles.map(p => `<option value="${p.name}">${p.name}</option>`).join("");
+  if (profiles.find(p => p.name === current)) sel.value = current;
+}
+
 function setQualityUI(q) {
   document.querySelectorAll(".qual-btn").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.q === q);
@@ -75,10 +110,14 @@ window.addEventListener("DOMContentLoaded", async () => {
   const savedFmt = await invoke("get_output_format");
   setFormatUI(savedFmt);
 
-  // Restore FPS and quality settings on startup.
+  // Restore all settings on startup.
   const settings = await invoke("get_settings");
   document.getElementById("fps-select").value = String(settings.fps);
   setQualityUI(settings.quality);
+  document.getElementById("countdown-toggle").checked = settings.countdown;
+
+  // Load profiles into dropdown.
+  await refreshProfiles();
 
   // Show the current save folder on startup.
   const defaultFolder = await invoke("get_save_folder");
@@ -182,12 +221,37 @@ window.addEventListener("DOMContentLoaded", async () => {
     if (isRecording) {
       await invoke("stop_recording");
     } else {
-      try {
-        await invoke("start_recording");
-      } catch (err) {
-        errLabel.textContent = err;
-        setTimeout(() => { errLabel.textContent = ""; }, 6000);
-      }
+      await startWithCountdown();
     }
+  });
+
+  document.getElementById("countdown-toggle").addEventListener("change", (e) => {
+    invoke("set_countdown", { enabled: e.target.checked });
+  });
+
+  document.getElementById("btn-save-profile").addEventListener("click", async () => {
+    const name = window.prompt("Profile name:");
+    if (!name?.trim()) return;
+    await invoke("save_profile", { name: name.trim() });
+    await refreshProfiles();
+    document.getElementById("profile-select").value = name.trim();
+  });
+
+  document.getElementById("btn-apply-profile").addEventListener("click", async () => {
+    const name = document.getElementById("profile-select").value;
+    if (!name) return;
+    const s = await invoke("apply_profile", { name });
+    document.getElementById("fps-select").value = String(s.fps);
+    setQualityUI(s.quality);
+    const fmt = await invoke("get_output_format");
+    setFormatUI(fmt);
+  });
+
+  document.getElementById("btn-delete-profile").addEventListener("click", async () => {
+    const name = document.getElementById("profile-select").value;
+    if (!name) return;
+    if (!window.confirm(`Delete profile "${name}"?`)) return;
+    await invoke("delete_profile", { name });
+    await refreshProfiles();
   });
 });

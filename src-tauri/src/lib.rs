@@ -1,5 +1,6 @@
 mod capture;
 mod commands;
+mod settings_store;
 mod state;
 
 use state::AppState;
@@ -61,6 +62,19 @@ pub fn run() {
                 }
             })?;
 
+            // Load persisted settings and apply to AppState.
+            let config_dir = app.path().app_config_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+            let saved = settings_store::load(&config_dir);
+            {
+                use state::{OutputFormat, Quality};
+                let s = app.state::<AppState>();
+                if let Some(fps) = saved.fps { *s.fps.lock().unwrap() = fps; }
+                if let Some(q) = saved.quality { *s.quality.lock().unwrap() = match q.as_str() { "high" => Quality::High, "low" => Quality::Low, _ => Quality::Medium }; }
+                if let Some(fmt) = saved.format { *s.output_format.lock().unwrap() = match fmt.as_str() { "gif" => OutputFormat::Gif, "webm" => OutputFormat::WebM, _ => OutputFormat::Mp4 }; }
+                if let Some(folder) = saved.save_folder { *s.save_folder.lock().unwrap() = Some(folder); }
+                if let Some(cd) = saved.countdown { *s.countdown_enabled.lock().unwrap() = cd; }
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -74,6 +88,11 @@ pub fn run() {
             commands::get_settings,
             commands::set_fps,
             commands::set_quality,
+            commands::set_countdown,
+            commands::get_profiles,
+            commands::save_profile,
+            commands::apply_profile,
+            commands::delete_profile,
             commands::open_preview_window,
             commands::get_preview_info,
             commands::discard_recording,

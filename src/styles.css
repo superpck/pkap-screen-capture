@@ -197,6 +197,41 @@ body {
   color: #f0f0f0;
 }
 
+.setting-group--narrow { flex: 0 0 auto; }
+
+/* Toggle switch */
+.toggle { display: flex; align-items: center; cursor: pointer; }
+.toggle input { display: none; }
+.toggle-track {
+  width: 32px; height: 18px;
+  background: #444; border-radius: 9px;
+  position: relative; transition: background 0.2s;
+}
+.toggle input:checked + .toggle-track { background: #2f7d32; }
+.toggle-thumb {
+  position: absolute; top: 2px; left: 2px;
+  width: 14px; height: 14px;
+  background: #fff; border-radius: 50%;
+  transition: transform 0.2s;
+}
+.toggle input:checked + .toggle-track .toggle-thumb { transform: translateX(14px); }
+
+/* Profile row */
+.profile-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+}
+.btn-danger {
+  background: #3a2020;
+  color: #e57373;
+  border-color: #5a3030;
+  font-size: 0.75rem;
+  padding: 5px 10px;
+}
+.btn-danger:hover { background: #4a2828; }
+
 /* ── Shared secondary button ─────────────────────────────────────────── */
 
 .btn-secondary {

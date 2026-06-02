@@ -45,6 +45,7 @@ pub struct AppState {
     pub pending_preview: Mutex<Option<PreviewInfo>>,
     pub fps: Mutex<u32>,
     pub quality: Mutex<Quality>,
+    pub countdown_enabled: Mutex<bool>,
 }
 
 impl AppState {
@@ -59,6 +60,7 @@ impl AppState {
             pending_preview: Mutex::new(None),
             fps: Mutex::new(30),
             quality: Mutex::new(Quality::Medium),
+            countdown_enabled: Mutex::new(false),
         }
     }
 

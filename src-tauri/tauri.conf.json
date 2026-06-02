@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "kcap",
+  "productName": "pkap",
   "version": "0.1.0",
-  "identifier": "com.pck.kcap",
+  "identifier": "com.pck.pkap",
   "build": {
     "frontendDist": "../src"
   },
@@ -14,7 +14,7 @@
         "label": "main",
         "title": "pkap",
         "width": 480,
-        "height": 460,
+        "height": 520,
         "resizable": false,
         "center": true
       }

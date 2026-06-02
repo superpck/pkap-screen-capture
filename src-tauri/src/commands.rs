@@ -7,8 +7,14 @@ use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder
 
 use crate::{
     capture::capture_loop,
+    settings_store::{self, Profile},
     state::{AppState, CaptureRegion, OutputFormat, PreviewInfo, Quality},
 };
+
+// Helper: returns the app config directory path.
+fn config_dir(app: &AppHandle) -> std::path::PathBuf {
+    app.path().app_config_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
+}
 
 // ── Monitor enumeration ───────────────────────────────────────────────────────
 
@@ -175,26 +181,56 @@ pub fn get_region(state: State<'_, AppState>) -> Result<Option<CaptureRegion>, S
 // ── Settings ──────────────────────────────────────────────────────────────────
 
 #[tauri::command]
-pub fn set_fps(state: State<'_, AppState>, fps: u32) -> Result<(), String> {
+pub fn set_fps(app: AppHandle, state: State<'_, AppState>, fps: u32) -> Result<(), String> {
     *state.fps.lock().unwrap() = fps; // TODO: handle error
+    persist(&app, &state);
     Ok(())
 }
 
 #[tauri::command]
-pub fn set_quality(state: State<'_, AppState>, quality: String) -> Result<(), String> {
+pub fn set_quality(app: AppHandle, state: State<'_, AppState>, quality: String) -> Result<(), String> {
     let q = match quality.as_str() {
         "high" => Quality::High,
         "low"  => Quality::Low,
         _      => Quality::Medium,
     };
     *state.quality.lock().unwrap() = q; // TODO: handle error
+    persist(&app, &state);
     Ok(())
+}
+
+#[tauri::command]
+pub fn set_countdown(app: AppHandle, state: State<'_, AppState>, enabled: bool) -> Result<(), String> {
+    *state.countdown_enabled.lock().unwrap() = enabled; // TODO: handle error
+    persist(&app, &state);
+    Ok(())
+}
+
+// Writes the current in-memory settings to disk.
+fn persist(app: &AppHandle, state: &AppState) {
+    let dir = config_dir(app);
+    let mut file = settings_store::load(&dir);
+    file.fps = Some(*state.fps.lock().unwrap());
+    file.quality = Some(match *state.quality.lock().unwrap() {
+        Quality::High   => "high",
+        Quality::Medium => "medium",
+        Quality::Low    => "low",
+    }.to_string());
+    file.format = Some(match *state.output_format.lock().unwrap() {
+        OutputFormat::Mp4  => "mp4",
+        OutputFormat::WebM => "webm",
+        OutputFormat::Gif  => "gif",
+    }.to_string());
+    file.save_folder = state.save_folder.lock().unwrap().clone();
+    file.countdown = Some(*state.countdown_enabled.lock().unwrap());
+    settings_store::save(&dir, &file);
 }
 
 #[derive(serde::Serialize)]
 pub struct Settings {
     pub fps: u32,
     pub quality: String,
+    pub countdown: bool,
 }
 
 #[tauri::command]
@@ -205,7 +241,85 @@ pub fn get_settings(state: State<'_, AppState>) -> Settings {
         Quality::Medium => "medium",
         Quality::Low    => "low",
     };
-    Settings { fps, quality: quality.to_string() }
+    let countdown = *state.countdown_enabled.lock().unwrap(); // TODO: handle error
+    Settings { fps, quality: quality.to_string(), countdown }
+}
+
+// ── Profiles ──────────────────────────────────────────────────────────────────
+
+// Returns all saved profiles from the settings file.
+#[tauri::command]
+pub fn get_profiles(app: AppHandle) -> Vec<Profile> {
+    let file = settings_store::load(&config_dir(&app));
+    file.profiles.unwrap_or_default()
+}
+
+// Saves current FPS/quality/format as a named profile.
+#[tauri::command]
+pub fn save_profile(app: AppHandle, state: State<'_, AppState>, name: String) -> Result<(), String> {
+    let fps = *state.fps.lock().unwrap();
+    let quality = match *state.quality.lock().unwrap() {
+        Quality::High   => "high",
+        Quality::Medium => "medium",
+        Quality::Low    => "low",
+    }.to_string();
+    let format = match *state.output_format.lock().unwrap() {
+        OutputFormat::Mp4  => "mp4",
+        OutputFormat::WebM => "webm",
+        OutputFormat::Gif  => "gif",
+    }.to_string();
+
+    let dir = config_dir(&app);
+    let mut file = settings_store::load(&dir);
+    let profiles = file.profiles.get_or_insert_with(Vec::new);
+
+    // Replace if name already exists, otherwise append.
+    if let Some(existing) = profiles.iter_mut().find(|p| p.name == name) {
+        existing.fps = fps;
+        existing.quality = quality;
+        existing.format = format;
+    } else {
+        profiles.push(Profile { name, fps, quality, format });
+    }
+
+    settings_store::save(&dir, &file);
+    Ok(())
+}
+
+// Applies a profile's settings to the current session.
+#[tauri::command]
+pub fn apply_profile(app: AppHandle, state: State<'_, AppState>, name: String) -> Result<Settings, String> {
+    let file = settings_store::load(&config_dir(&app));
+    let profile = file.profiles.unwrap_or_default()
+        .into_iter()
+        .find(|p| p.name == name)
+        .ok_or_else(|| format!("Profile '{name}' not found"))?;
+
+    *state.fps.lock().unwrap() = profile.fps;
+    *state.quality.lock().unwrap() = match profile.quality.as_str() {
+        "high" => Quality::High,
+        "low"  => Quality::Low,
+        _      => Quality::Medium,
+    };
+    *state.output_format.lock().unwrap() = match profile.format.as_str() {
+        "gif"  => OutputFormat::Gif,
+        "webm" => OutputFormat::WebM,
+        _      => OutputFormat::Mp4,
+    };
+    persist(&app, &state);
+    Ok(get_settings(state))
+}
+
+// Deletes a profile by name.
+#[tauri::command]
+pub fn delete_profile(app: AppHandle, name: String) -> Result<(), String> {
+    let dir = config_dir(&app);
+    let mut file = settings_store::load(&dir);
+    if let Some(profiles) = &mut file.profiles {
+        profiles.retain(|p| p.name != name);
+    }
+    settings_store::save(&dir, &file);
+    Ok(())
 }
 
 // ── Preview ───────────────────────────────────────────────────────────────────
@@ -272,13 +386,14 @@ pub fn close_preview(app: AppHandle) -> Result<(), String> {
 // ── Output format ─────────────────────────────────────────────────────────────
 
 #[tauri::command]
-pub fn set_output_format(state: State<'_, AppState>, format: String) -> Result<(), String> {
+pub fn set_output_format(app: AppHandle, state: State<'_, AppState>, format: String) -> Result<(), String> {
     let fmt = match format.as_str() {
         "gif"  => OutputFormat::Gif,
         "webm" => OutputFormat::WebM,
         _      => OutputFormat::Mp4,
     };
     *state.output_format.lock().unwrap() = fmt; // TODO: handle error
+    persist(&app, &state);
     Ok(())
 }
 
@@ -295,8 +410,9 @@ pub fn get_output_format(state: State<'_, AppState>) -> String {
 
 // Stores the user-chosen save folder path (path comes from the JS dialog API).
 #[tauri::command]
-pub fn set_save_folder(state: State<'_, AppState>, path: String) -> Result<(), String> {
+pub fn set_save_folder(app: AppHandle, state: State<'_, AppState>, path: String) -> Result<(), String> {
     *state.save_folder.lock().unwrap() = Some(path); // TODO: handle error
+    persist(&app, &state);
     Ok(())
 }
 
