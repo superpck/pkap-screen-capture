@@ -2,38 +2,79 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri App</title>
+    <title>pkap</title>
+    <link rel="stylesheet" href="styles.css" />
     <script type="module" src="/main.js" defer></script>
   </head>
-
   <body>
     <main class="container">
-      <h1>Welcome to Tauri</h1>
 
-      <div class="row">
-        <a href="https://tauri.app" target="_blank">
-          <img src="/assets/tauri.svg" class="logo tauri" alt="Tauri logo" />
-        </a>
-        <a
-          href="https://developer.mozilla.org/en-US/docs/Web/JavaScript"
-          target="_blank"
-        >
-          <img
-            src="/assets/javascript.svg"
-            class="logo vanilla"
-            alt="JavaScript logo"
-          />
-        </a>
+      <div class="section">
+        <p class="section-title">Save to</p>
+        <div class="save-row">
+          <span class="save-folder-label" id="save-folder-label">~/Movies</span>
+          <button class="btn-secondary" id="btn-change-folder">Change…</button>
+        </div>
       </div>
-      <p>Click on the Tauri logo to learn more about the framework</p>
 
-      <form class="row" id="greet-form">
-        <input id="greet-input" placeholder="Enter a name..." />
-        <button type="submit">Greet</button>
-      </form>
-      <p id="greet-msg"></p>
+      <div class="section">
+        <p class="section-title">Screen</p>
+        <div class="region-row">
+          <span class="region-label" id="region-label">No region selected</span>
+          <div class="region-btns">
+            <select class="monitor-select" id="monitor-select">
+              <option value="0">Loading…</option>
+            </select>
+            <button class="btn-secondary" id="btn-select-region">Select Region…</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <p class="section-title">Format</p>
+        <div class="format-btns">
+          <button class="fmt-btn active" id="fmt-mp4" data-fmt="mp4">MP4</button>
+          <button class="fmt-btn" id="fmt-webm" data-fmt="webm">WebM</button>
+          <button class="fmt-btn" id="fmt-gif" data-fmt="gif">GIF</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <p class="section-title">Settings</p>
+        <div class="settings-row">
+          <div class="setting-group">
+            <span class="setting-label">FPS</span>
+            <select class="setting-select" id="fps-select">
+              <option value="10">10</option>
+              <option value="15">15</option>
+              <option value="24">24</option>
+              <option value="30" selected>30</option>
+              <option value="60">60</option>
+            </select>
+          </div>
+          <div class="setting-group">
+            <span class="setting-label">Quality</span>
+            <div class="quality-btns">
+              <button class="qual-btn" data-q="low">Low</button>
+              <button class="qual-btn active" data-q="medium">Med</button>
+              <button class="qual-btn" data-q="high">High</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="status">
+        <span class="status-dot idle" id="status-dot"></span>
+        <span class="status-label" id="status-label">Idle</span>
+      </div>
+
+      <button class="record-btn" id="record-btn">Start Recording</button>
+
+      <p class="frame-count" id="frame-count"></p>
+      <p class="save-path" id="save-path"></p>
+      <p class="error-label" id="error-label"></p>
+
     </main>
   </body>
 </html>

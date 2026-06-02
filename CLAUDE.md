@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-# pkap — Screen Recorder (Kap Clone)
+# pkap — Screen Recorder
 
 A cross-platform screen recorder built with Rust + Tauri 2.
 Goal: export to GIF, MP4, and WebM. Runs natively on macOS Apple Silicon, Windows, and Linux.
@@ -190,14 +190,14 @@ Exact command or steps to verify it works.
 
 ## Feature Roadmap (build in this order)
 
-- [ ] 1. Basic Tauri window + menu bar icon
-- [ ] 2. Select capture region (full screen or drag to select area)
-- [ ] 3. Start / stop recording with hotkey
-- [ ] 4. Encode and save as MP4
-- [ ] 5. Export as GIF
-- [ ] 6. Export as WebM
-- [ ] 7. Preview before saving
-- [ ] 8. Settings panel (fps, quality, save location)
+- [x] 1. Basic Tauri window + menu bar icon
+- [x] 2. Select capture region (full screen or drag to select area)
+- [x] 3. Start / stop recording with hotkey (Cmd+Shift+R)
+- [x] 4. Encode and save as MP4
+- [x] 5. Export as GIF
+- [x] 6. Export as WebM
+- [x] 7. Preview before saving
+- [x] 8. Settings panel (fps, quality, save location)
 
 When asked "what should we build next?", refer to this list.
 

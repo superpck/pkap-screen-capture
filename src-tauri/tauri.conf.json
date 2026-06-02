@@ -1,22 +1,30 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "kcap-app",
+  "productName": "kcap",
   "version": "0.1.0",
-  "identifier": "com.pck.kcap-app",
+  "identifier": "com.pck.kcap",
   "build": {
     "frontendDist": "../src"
   },
   "app": {
     "withGlobalTauri": true,
+    "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "kcap-app",
-        "width": 800,
-        "height": 600
+        "label": "main",
+        "title": "pkap",
+        "width": 480,
+        "height": 460,
+        "resizable": false,
+        "center": true
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["**"]
+      }
     }
   },
   "bundle": {
